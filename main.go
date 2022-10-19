@@ -13,7 +13,9 @@ import (
 
 func main() {
 
-	productsHandler := handlers.NewProductsHandler()
+	logger := log.New(os.Stdout, "Products-api:", log.LstdFlags)
+
+	productsHandler := handlers.NewProductsHandler(logger)
 
 	mux := http.NewServeMux()
 	mux.Handle("/", productsHandler)
@@ -21,32 +23,34 @@ func main() {
 	server := &http.Server{
 		Addr:         ":9000",
 		Handler:      mux,
-		ReadTimeout:  time.Second * 10,
-		WriteTimeout: time.Second * 10,
-		IdleTimeout:  time.Second * 120,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 
+	// Run the server in a seperate goroutine
 	go func() {
-		log.Println("Starting server...")
 		err := server.ListenAndServe()
 		if err != nil {
-			log.Println("Error: ", err)
+			logger.Println(err)
 		}
 	}()
 
-	// Use channel to bloack until interrupt is received and gracefully shutdown
-	signalChannel := make(chan os.Signal)
+	// Use channels to block
+	sigChan := make(chan os.Signal)
 
-	signal.Notify(signalChannel, os.Kill)
-	signal.Notify(signalChannel, os.Interrupt)
+	// Notify the channel on os.Kill or os.Interrupt
+	signal.Notify(sigChan, os.Kill)
+	signal.Notify(sigChan, os.Interrupt)
 
-	// Block until signal is received
-	msg := <-signalChannel
+	sigData := <-sigChan
 
-	log.Println("Received", msg, "signal, gracefully shutting down!")
+	// Gracefully shutdown
+	logger.Println("Received", sigData, "Signal, gracefully shutting down.")
 
-	timeOutContext, cancel := context.WithTimeout(context.Background(), time.Second*120)
-	defer cancel()
+	timeOutContext, cancelFunc := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancelFunc()
+
 	server.Shutdown(timeOutContext)
 
 }

@@ -1,15 +1,18 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/LarryCodes/products/models"
 )
 
-type ProductsHandler struct{}
+type ProductsHandler struct {
+	l *log.Logger
+}
 
-func NewProductsHandler() *ProductsHandler {
-	return &ProductsHandler{}
+func NewProductsHandler(l *log.Logger) *ProductsHandler {
+	return &ProductsHandler{l}
 }
 
 func (h *ProductsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
